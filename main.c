@@ -1,27 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define NUM_FILES 32
-#define LINE_LEN 2048
-
-enum {
-	OK,
-	INVALID_FILE_NUMBER,
-	MEMORY_ALLOCATION_FAILED,
-	NO_FILE,
-	INVALID_TYPE,
-	INVALID_PIXELS
-} error_codes_t;
-
-typedef struct {
-	unsigned char r, g, b;
-} pixel_t;
-
-typedef struct {
-	short int height, width, top;
-	pixel_t **rgb_matrix;
-} image_metadata_t;
+#include "definitions.h"
+#include "memory_management.h"
 
 void check_files(int argc)
 {
@@ -34,71 +15,17 @@ void check_files(int argc)
 	}
 }
 
-FILE **alloc_images(int argc, char **argv)
-{
-	FILE **files = (FILE **)malloc(sizeof(FILE *) * (argc - 1));
-	if (files == NULL) {
-		printf("Memory allocation failed.\n");
-		exit(MEMORY_ALLOCATION_FAILED);
-	} else {
-		for (int i = 0; i < argc - 1; i++) {
-			files[i] = fopen(argv[i + 1], "rt");
-			if (!files[i]) {
-				printf("Cannot open file %s.\n", argv[i + 1]);
-				for (int j = i - 1; j >= 0; j--) {
-					fclose(files[i]);
-				}
-				free(files);
-				exit(NO_FILE);
-			} else {
-				printf("Successfully opened %s.\n", argv[i + 1]);
-			}
-		}
-	}
-	return files;
-}
-
-pixel_t **alloc_rgb_matrix(image_metadata_t* mtd)
-{
-	pixel_t **rgb_matrix;
-	rgb_matrix = (pixel_t **)malloc(mtd->height * sizeof(pixel_t *));
-	if (!rgb_matrix) {
-		exit(MEMORY_ALLOCATION_FAILED);
-	}
-	for (short int i = 0; i < mtd->height; i++) {
-		rgb_matrix[i] = (pixel_t *)malloc(mtd->width * sizeof(pixel_t));
-		if (!rgb_matrix[i]) {
-			for (int j = i - 1; j >= 0; j--) {
-				free(rgb_matrix[j]);
-			}
-			free(rgb_matrix);
-			exit(MEMORY_ALLOCATION_FAILED);
-		}
-	}
-	return rgb_matrix;
-}
-
-void free_rgb_matrix(pixel_t ***rgb_matrix, const short int height)
-{
-	if (*rgb_matrix) {
-		for (short int i = 0; i < height; i++) {
-			if ((*rgb_matrix)[i]) {
-				free((*rgb_matrix)[i]);
-				(*rgb_matrix)[i] = NULL;
-			}
-		}
-		free(*rgb_matrix);
-		*rgb_matrix = NULL;
-	}
-}
-
-void read_rgb_matrix(FILE *input, pixel_t **rgb_matrix, const image_metadata_t *mtd, const char format)
+void read_rgb_matrix(FILE *input, pixel_t **rgb_matrix, image_metadata_t *mtd, char format)
 {
 	int k = 0;
 	for (short int i = 0; i < mtd->height; i++) {
 		for (short int j = 0; j < mtd->width; j++) {
 			if (format == 't') {
-				if (fscanf(input, "%hhu%hhu%hhu", &rgb_matrix[i][j].r, &rgb_matrix[i][j].g, &rgb_matrix[i][j].b) == 3) {
+				unsigned int r, g, b;
+				if (fscanf(input, "%u%u%u", &r, &g, &b) == 3) {
+					rgb_matrix[i][j].r = (unsigned char)r;
+					rgb_matrix[i][j].g = (unsigned char)g;
+					rgb_matrix[i][j].b = (unsigned char)b;
 					k++;
 				}
 			} else {
@@ -108,12 +35,13 @@ void read_rgb_matrix(FILE *input, pixel_t **rgb_matrix, const image_metadata_t *
 			}
 		}
 	}
+	printf("Read %d pixels.\n", k);
 	if (k != mtd->height * mtd->width) {
 		exit(INVALID_PIXELS);
 	}
 }
 
-image_metadata_t read_image(char *filename, FILE *input, pixel_t ***rgb_matrix, const char format)
+image_metadata_t read_image(char *filename, FILE *input, pixel_t ***rgb_matrix, char format)
 {
 	char buffer[LINE_LEN];
 	image_metadata_t img_mtd;
@@ -151,9 +79,7 @@ int main(int argc, char **argv)
 				return INVALID_TYPE;
 			}
 		}
-		if (rgb_matrix) {
-			free_rgb_matrix(&rgb_matrix, img_mtd.height);
-		}
+		free_rgb_matrix(&rgb_matrix, img_mtd.height);
 	}
 	for (int i = 0; i < argc - 1; i++) {
 		fclose(files[i]);
