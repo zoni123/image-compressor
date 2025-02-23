@@ -5,6 +5,8 @@
 #include <lapacke.h>
 #include <cblas.h>
 #include "memory_management.h"
+#include "i_o.h"
+#include "definitions.h"
 
 void check_files(int argc)
 {
@@ -15,59 +17,6 @@ void check_files(int argc)
 		printf("Too many files provided.\n");
 		exit(INVALID_FILE_NUMBER);
 	}
-}
-
-void read_rgb_matrix(FILE *input, pixel_t **rgb_matrix, image_metadata_t *mtd, char format)
-{
-	int k = 0;
-	for (short int i = 0; i < mtd->height; i++) {
-		for (short int j = 0; j < mtd->width; j++) {
-			if (format == 't') {
-				unsigned int r, g, b;
-				if (fscanf(input, "%u%u%u", &r, &g, &b) == 3) {
-					rgb_matrix[i][j].r = (double)r;
-					rgb_matrix[i][j].g = (double)g;
-					rgb_matrix[i][j].b = (double)b;
-					k++;
-				}
-			} else {
-				unsigned char r, g, b;
-				if (fread(&r, sizeof(unsigned char), 1, input) == 1 &&
-					fread(&g, sizeof(unsigned char), 1, input) == 1 &&
-					fread(&b, sizeof(unsigned char), 1, input) == 1) {
-					rgb_matrix[i][j].r = (double)r;
-					rgb_matrix[i][j].g = (double)g;
-					rgb_matrix[i][j].b = (double)b;
-					k++;
-				}
-			}
-		}
-	}
-	printf("Read %d pixels.\n", k);
-	if (k != mtd->height * mtd->width) {
-		printf("Invalid number of pixels.\n");
-		exit(INVALID_PIXELS);
-	}
-}
-
-image_metadata_t read_image(char *filename, FILE *input, pixel_t ***rgb_matrix,
-							char format)
-{
-	char buffer[LINE_LEN];
-	image_metadata_t mtd;
-	fscanf(input, "%hd%hd%hd", &mtd.width, &mtd.height, &mtd.top);
-	*rgb_matrix = alloc_rgb_matrix(mtd.height, mtd.width);
-	if (format == 't') {
-		read_rgb_matrix(input, *rgb_matrix, &mtd, 't');
-	} else if (format == 'b') {
-		fclose(input);
-		input = fopen(filename, "rb");
-		for (int i = 0; i < 3; i++) {
-			fgets(buffer, LINE_LEN, input);
-		}
-		read_rgb_matrix(input, *rgb_matrix, &mtd, 'b');
-	}
-	return mtd;
 }
 
 void svd(double *rgb_matrix, int height, int width, double *U, double *S, double *VT) {
@@ -101,10 +50,12 @@ int main(int argc, char **argv)
 	FILE **files = alloc_images(argc, argv), *output = fopen("test_output.ppm", "wt");
 	printf("How much compression?\n1. A little\n2. A decent amount\n3. A lot\n4. Make it unintelligible\n (Choose a number between 1 and 4)\n");
 	scanf("%hhu", &compression_level);
+
 	if (compression_level < 1 || compression_level > 4) {
 		printf("Invalid compression level.\n");
 		return FAILED_SVD;
 	}
+
 	for (int i = 0; i < argc - 1; i++) {
 		if (strcmp(strstr(argv[i + 1], ".ppm"), ".ppm") == OK) {
 			fgets(filetype, 3, files[i]);
@@ -148,29 +99,48 @@ int main(int argc, char **argv)
         svd(g, mtd.height, mtd.width, u_g, s_g, vt_g);
         svd(b, mtd.height, mtd.width, u_b, s_b, vt_b);
 
-		fprintf(output, "P3\n%d %d\n255\n", mtd.width, mtd.height);
+		fprintf(output, "P3\n%d %d\n255\n", mtd.width / (compression_level + 1), mtd.height / (compression_level + 1));
 
-		double prev_compressed_r = 0.0, prev_compressed_g = 0.0, prev_compressed_b = 0.0;
 		for (int j = 0; j < mtd.height; j++) {
 			for (int k = 0; k < mtd.width; k++) {
-				double compressed_r = 0.0, compressed_g = 0.0, compressed_b = 0.0;
+				rgb_matrix[j][k].r = 0.0;
+				rgb_matrix[j][k].g = 0.0;
+				rgb_matrix[j][k].b = 0.0;
 				for (int l = 0; l < compression_level; l++) {
-					compressed_r += u_r[j * mtd.height + l] * s_r[l] * vt_r[l * mtd.width + k];
-					compressed_g += u_g[j * mtd.height + l] * s_g[l] * vt_g[l * mtd.width + k];
-					compressed_b += u_b[j * mtd.height + l] * s_b[l] * vt_b[l * mtd.width + k];
+					rgb_matrix[j][k].r += u_r[j * mtd.height + l] * s_r[l] * vt_r[l * mtd.width + k];
+					rgb_matrix[j][k].g += u_g[j * mtd.height + l] * s_g[l] * vt_g[l * mtd.width + k];
+					rgb_matrix[j][k].b += u_b[j * mtd.height + l] * s_b[l] * vt_b[l * mtd.width + k];
 				}
-				clamp(&compressed_r);
-				clamp(&compressed_g);
-				clamp(&compressed_b);
-				compressed_r = floor(compressed_r);
-				compressed_g = floor(compressed_g);
-				compressed_b = floor(compressed_b);
-				//if (compressed_r != prev_compressed_r || compressed_g != prev_compressed_g || compressed_b != prev_compressed_b) {
-					fprintf(output, "%.0lf %.0lf %.0lf ", compressed_r, compressed_g, compressed_b);
-				//}
-				prev_compressed_r = compressed_r;
-				prev_compressed_g = compressed_g;
-				prev_compressed_b = compressed_b;
+				clamp(&rgb_matrix[j][k].r);
+				clamp(&rgb_matrix[j][k].g);
+				clamp(&rgb_matrix[j][k].b);
+			}
+		}
+
+		for (int j = 0; j < mtd.height; j += compression_level + 1) {
+			for (int k = 0; k < mtd.width; k += compression_level + 1) {
+				pixel_t average = {0.0, 0.0, 0.0};
+				int valid_downsample = 1;
+				for (int l = 0; l < compression_level + 1; l++) {
+					for (int m = 0; m < compression_level + 1; m++) {
+						if (j + l >= mtd.height || k + m >= mtd.width) {
+							valid_downsample = 0;
+							break;
+						}
+						average.r += rgb_matrix[j + l][k + m].r;
+						average.g += rgb_matrix[j + l][k + m].g;
+						average.b += rgb_matrix[j + l][k + m].b;
+					}
+				}
+				average.r /= (compression_level + 1) * (compression_level + 1);
+				average.g /= (compression_level + 1) * (compression_level + 1);
+				average.b /= (compression_level + 1) * (compression_level + 1);
+				clamp(&average.r);
+				clamp(&average.g);
+				clamp(&average.b);
+				if (valid_downsample) {
+					fprintf(output, "%0.f %0.f %0.f ", average.r, average.g, average.b);
+				}
 			}
 			fprintf(output, "\n");
 		}
@@ -187,9 +157,9 @@ int main(int argc, char **argv)
         free(u_b);
         free(s_b);
         free(vt_b);
-
 		free_rgb_matrix(&rgb_matrix, mtd.height);
 	}
+	fclose(output);
 	for (int i = 0; i < argc - 1; i++) {
 		fclose(files[i]);
 	}

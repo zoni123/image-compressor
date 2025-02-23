@@ -32,7 +32,7 @@ pixel_t **alloc_rgb_matrix(short int height, short int width)
 	if (!rgb_matrix) {
 		exit(MEMORY_ALLOCATION_FAILED);
 	}
-	for (short int i = 0; i < height; i++) {
+	for (int i = 0; i < height; i++) {
 		rgb_matrix[i] = (pixel_t *)malloc(width * sizeof(pixel_t));
 		if (!rgb_matrix[i]) {
 			for (int j = i - 1; j >= 0; j--) {
@@ -48,7 +48,7 @@ pixel_t **alloc_rgb_matrix(short int height, short int width)
 void free_rgb_matrix(pixel_t ***rgb_matrix, short int height)
 {
 	if (*rgb_matrix) {
-		for (short int i = 0; i < height; i++) {
+		for (int i = 0; i < height; i++) {
 			if ((*rgb_matrix)[i]) {
 				free((*rgb_matrix)[i]);
 				(*rgb_matrix)[i] = NULL;
