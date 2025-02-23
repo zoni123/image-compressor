@@ -69,8 +69,6 @@ int main(int argc, char **argv)
 			}
 		}
 
-		compression_level = min(mtd.height, mtd.width) / (compression_level * compression_level * 5);
-
         double *r = (double *)malloc(mtd.height * mtd.width * sizeof(double));
         double *g = (double *)malloc(mtd.height * mtd.width * sizeof(double));
         double *b = (double *)malloc(mtd.height * mtd.width * sizeof(double));
@@ -101,12 +99,14 @@ int main(int argc, char **argv)
 
 		fprintf(output, "P3\n%d %d\n255\n", mtd.width / (compression_level + 1), mtd.height / (compression_level + 1));
 
+		int selected_pixels = min(mtd.height, mtd.width) / (compression_level * compression_level * 5);
+
 		for (int j = 0; j < mtd.height; j++) {
 			for (int k = 0; k < mtd.width; k++) {
 				rgb_matrix[j][k].r = 0.0;
 				rgb_matrix[j][k].g = 0.0;
 				rgb_matrix[j][k].b = 0.0;
-				for (int l = 0; l < compression_level; l++) {
+				for (int l = 0; l < selected_pixels; l++) {
 					rgb_matrix[j][k].r += u_r[j * mtd.height + l] * s_r[l] * vt_r[l * mtd.width + k];
 					rgb_matrix[j][k].g += u_g[j * mtd.height + l] * s_g[l] * vt_g[l * mtd.width + k];
 					rgb_matrix[j][k].b += u_b[j * mtd.height + l] * s_b[l] * vt_b[l * mtd.width + k];
@@ -132,9 +132,9 @@ int main(int argc, char **argv)
 						average.b += rgb_matrix[j + l][k + m].b;
 					}
 				}
-				average.r /= (compression_level + 1) * (compression_level + 1);
-				average.g /= (compression_level + 1) * (compression_level + 1);
-				average.b /= (compression_level + 1) * (compression_level + 1);
+				average.r /= ((compression_level + 1) * (compression_level + 1));
+				average.g /= ((compression_level + 1) * (compression_level + 1));
+				average.b /= ((compression_level + 1) * (compression_level + 1));
 				clamp(&average.r);
 				clamp(&average.g);
 				clamp(&average.b);
