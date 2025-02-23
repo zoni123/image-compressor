@@ -25,15 +25,15 @@ FILE **alloc_images(int argc, char **argv)
 	return files;
 }
 
-pixel_t **alloc_rgb_matrix(image_metadata_t* mtd)
+pixel_t **alloc_rgb_matrix(short int height, short int width)
 {
 	pixel_t **rgb_matrix;
-	rgb_matrix = (pixel_t **)malloc(mtd->height * sizeof(pixel_t *));
+	rgb_matrix = (pixel_t **)malloc(height * sizeof(pixel_t *));
 	if (!rgb_matrix) {
 		exit(MEMORY_ALLOCATION_FAILED);
 	}
-	for (short int i = 0; i < mtd->height; i++) {
-		rgb_matrix[i] = (pixel_t *)malloc(mtd->width * sizeof(pixel_t));
+	for (short int i = 0; i < height; i++) {
+		rgb_matrix[i] = (pixel_t *)malloc(width * sizeof(pixel_t));
 		if (!rgb_matrix[i]) {
 			for (int j = i - 1; j >= 0; j--) {
 				free(rgb_matrix[j]);

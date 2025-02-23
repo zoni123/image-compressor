@@ -5,7 +5,7 @@
 
 FILE **alloc_images(int argc, char **argv);
 
-pixel_t **alloc_rgb_matrix(image_metadata_t* mtd);
+pixel_t **alloc_rgb_matrix(short int height, short int width);
 
 void free_rgb_matrix(pixel_t ***rgb_matrix, short int height);
 
