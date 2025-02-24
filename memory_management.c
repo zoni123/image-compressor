@@ -25,6 +25,30 @@ FILE **alloc_images(int argc, char **argv)
 	return files;
 }
 
+FILE **alloc_images_w(int argc, char **argv)
+{
+	FILE **files = (FILE **)malloc(sizeof(FILE *) * (argc - 1));
+	if (files == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(MEMORY_ALLOCATION_FAILED);
+	} else {
+		for (int i = 0; i < argc - 1; i++) {
+			files[i] = fopen(argv[i + 1], "wt");
+			if (!files[i]) {
+				printf("Cannot open file %s.\n", argv[i + 1]);
+				for (int j = i - 1; j >= 0; j--) {
+					fclose(files[i]);
+				}
+				free(files);
+				exit(NO_FILE);
+			} else {
+				printf("Successfully opened %s.\n", argv[i + 1]);
+			}
+		}
+	}
+	return files;
+}
+
 pixel_t **alloc_rgb_matrix(short int height, short int width)
 {
 	pixel_t **rgb_matrix;

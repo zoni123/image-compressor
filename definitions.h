@@ -15,12 +15,17 @@ typedef enum {
 	FAILED_SVD
 } error_codes_t;
 
+typedef enum {
+	P3,
+	P6
+} image_format_t;
+
 typedef struct {
 	double r, g, b;
 } pixel_t;
 
 typedef struct {
-	short int height, width, top;
+	short int height, width, top, image_format;
 } image_metadata_t;
 
 #endif

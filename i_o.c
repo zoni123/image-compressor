@@ -15,6 +15,7 @@ void read_rgb_matrix(FILE *input, pixel_t **rgb_matrix, image_metadata_t *mtd, c
 					rgb_matrix[i][j].b = (double)b;
 					k++;
 				}
+				mtd->image_format = P3;
 			} else {
 				unsigned char r, g, b;
 				if (fread(&r, sizeof(unsigned char), 1, input) == 1 &&
@@ -25,6 +26,7 @@ void read_rgb_matrix(FILE *input, pixel_t **rgb_matrix, image_metadata_t *mtd, c
 					rgb_matrix[i][j].b = (double)b;
 					k++;
 				}
+				mtd->image_format = P6;
 			}
 		}
 	}
