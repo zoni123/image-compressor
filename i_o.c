@@ -1,6 +1,8 @@
+/* (c) 2025 Sebastian-Marian Badea - MIT License */
 #include "i_o.h"
 #include "memory_management.h"
 #include <stdlib.h>
+#include <string.h>
 
 void read_rgb_matrix(FILE *input, pixel_t **rgb_matrix, image_metadata_t *mtd, char format)
 {
@@ -30,6 +32,7 @@ void read_rgb_matrix(FILE *input, pixel_t **rgb_matrix, image_metadata_t *mtd, c
 			}
 		}
 	}
+
 	printf("Read %d pixels.\n", k);
 	if (k != mtd->height * mtd->width) {
 		printf("Invalid number of pixels.\n");
@@ -37,13 +40,15 @@ void read_rgb_matrix(FILE *input, pixel_t **rgb_matrix, image_metadata_t *mtd, c
 	}
 }
 
-image_metadata_t read_image(char *filename, FILE *input, pixel_t ***rgb_matrix,
+image_metadata_t read_ppm_image(char *filename, FILE *input, pixel_t ***rgb_matrix,
 							char format)
 {
 	char buffer[LINE_LEN];
 	image_metadata_t mtd;
+
 	fscanf(input, "%hd%hd%hd", &mtd.width, &mtd.height, &mtd.top);
 	*rgb_matrix = alloc_rgb_matrix(mtd.height, mtd.width);
+
 	if (format == 't') {
 		read_rgb_matrix(input, *rgb_matrix, &mtd, 't');
 	} else if (format == 'b') {
@@ -55,4 +60,32 @@ image_metadata_t read_image(char *filename, FILE *input, pixel_t ***rgb_matrix,
 		read_rgb_matrix(input, *rgb_matrix, &mtd, 'b');
 	}
 	return mtd;
+}
+
+void create_output_files(int argc, char **argv, char **filenames, char *extension)
+{
+	char *p;
+	for (int i = 0; i < argc - 1; i++) {
+		strcpy(filenames[i + 1], argv[i + 1]);
+		p = strchr(filenames[i + 1], '.');
+		if (p) {
+			strcpy(extension, p + 1);
+		} else {
+			exit(INVALID_TYPE);
+		}
+		p[0] = '\0';
+		strcat(filenames[i + 1], "_compressed.");
+		strcat(filenames[i + 1], extension);
+	}
+}
+
+void check_files(int argc)
+{
+	if (argc < 2) {
+		printf("Provide at least one valid file.\n");
+		exit(INVALID_FILE_NUMBER);
+	} else if (argc > NUM_FILES + 1) {
+		printf("Too many files provided.\n");
+		exit(INVALID_FILE_NUMBER);
+	}
 }

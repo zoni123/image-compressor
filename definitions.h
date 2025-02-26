@@ -1,3 +1,4 @@
+/* (c) 2025 Sebastian-Marian Badea - MIT License */
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
 

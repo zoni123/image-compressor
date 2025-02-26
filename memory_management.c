@@ -1,3 +1,4 @@
+/* (c) 2025 Sebastian-Marian Badea - MIT License */
 #include <stdlib.h>
 #include "memory_management.h"
 
@@ -81,4 +82,37 @@ void free_rgb_matrix(pixel_t ***rgb_matrix, short int height)
 		free(*rgb_matrix);
 		*rgb_matrix = NULL;
 	}
+}
+
+void wipe(double *r_matrix, double *g_matrix, double *b_matrix, double *u_r,
+	double *s_r, double *vt_r, double *u_g, double *s_g, double *vt_g,
+	double *u_b, double *s_b, double *vt_b, pixel_t **rgb_matrix,
+	pixel_t **compressed_matrix, short int rgb_height, short int compressed_height)
+{
+	free(r_matrix);
+	free(g_matrix);
+	free(b_matrix);
+	free(u_r);
+	free(s_r);
+	free(vt_r);
+	free(u_g);
+	free(s_g);
+	free(vt_g);
+	free(u_b);
+	free(s_b);
+	free(vt_b);
+	free_rgb_matrix(&rgb_matrix, rgb_height);
+	free_rgb_matrix(&compressed_matrix, compressed_height);
+}
+
+void close_files(FILE **files, FILE **outputs, char **filenames, int argc)
+{
+	for (int i = 0; i < argc - 1; i++) {
+		fclose(files[i]);
+		fclose(outputs[i]);
+	}
+	for (int i = 0; i < argc; i++) {
+		free(filenames[i]);
+	}
+	free(filenames);
 }
