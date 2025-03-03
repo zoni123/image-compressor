@@ -16,11 +16,13 @@
 #include "definitions.h"
 #include "helper_functions.h"
 
+/* TODO: CLEAN UP THE CODE AND ADD COMMENTS */
+
 int main(int argc, char **argv)
 {
 	check_files(argc);
 
-	unsigned char compression_level;
+	unsigned char compression_level, bmp_header[LINE_LEN];
 	char ppm_filetype[3], **filenames = (char **)malloc(sizeof(char *) * argc), extension[LINE_LEN];
 	pixel_t **rgb_matrix = NULL, **compressed_matrix = NULL;
 	image_metadata_t rgb_mtd, compressed_mtd;
@@ -41,6 +43,11 @@ int main(int argc, char **argv)
 	outputs = alloc_images_w(argc, filenames);
 
 	for (int i = 0; i < argc - 1; i++) {
+		char *p;
+		p = strchr(filenames[i + 1], '.');
+		if (p) {
+			strcpy(extension, p + 1);
+		}
 		if (strcmp(extension, "ppm") == OK) {
 			fgets(ppm_filetype, 3, files[i]);
 			if (strcmp(ppm_filetype, "P3") == 0) {
@@ -51,47 +58,23 @@ int main(int argc, char **argv)
 				printf("File is not a valid ppm image.\n");
 				return INVALID_TYPE;
 			}
+			printf("How much compression for %s?\n1. A little\n2. A decent amount\n3. A lot\n4. Make it unintelligible\n (Choose a number between 1 and 4)\n", filenames[i + 1]);
+			scanf("%hhu", &compression_level);
+		} else if (strcmp(extension, "bmp") == OK) {
+			rgb_mtd = read_bmp_image(argv[i + 1], files[i], &rgb_matrix, bmp_header);
+			printf("Compression for .bmp is broken in this version for compression levels {2, 3, 4}.\nWill automatically use compression level 1.\n");
+			compression_level = 1;
+		} else {
+			printf("Invalid file type.\n");
+			return INVALID_TYPE;
 		}
-
-		printf("How much compression for %s?\n1. A little\n2. A decent amount\n3. A lot\n4. Make it unintelligible\n (Choose a number between 1 and 4)\n", filenames[i + 1]);
-		scanf("%hhu", &compression_level);
-
 		if (compression_level < 1 || compression_level > 4) {
 			printf("Invalid compression level.\n");
 			return FAILED_SVD;
 		}
 
 		compressed_matrix = alloc_rgb_matrix(rgb_mtd.height / (compression_level + 1), rgb_mtd.width / (compression_level + 1));
-
-		for (int j = 0; j < rgb_mtd.height; j += compression_level + 1) {
-			for (int k = 0; k < rgb_mtd.width; k += compression_level + 1) {
-				pixel_t average = {0.0, 0.0, 0.0};
-				int valid_downsample = 1;
-				for (int l = 0; l < compression_level + 1; l++) {
-					for (int m = 0; m < compression_level + 1; m++) {
-						if (j + l >= rgb_mtd.height || k + m >= rgb_mtd.width) {
-							valid_downsample = 0;
-							break;
-						}
-						average.r += rgb_matrix[j + l][k + m].r;
-						average.g += rgb_matrix[j + l][k + m].g;
-						average.b += rgb_matrix[j + l][k + m].b;
-					}
-				}
-
-				average.r /= ((compression_level + 1) * (compression_level + 1));
-				average.g /= ((compression_level + 1) * (compression_level + 1));
-				average.b /= ((compression_level + 1) * (compression_level + 1));
-
-				clamp(&average.r);
-				clamp(&average.g);
-				clamp(&average.b);
-
-				if (valid_downsample) {
-					compressed_matrix[j / (compression_level + 1)][k / (compression_level + 1)] = average;
-				}
-			}
-		}
+		downsample(&rgb_mtd, rgb_matrix, compressed_matrix, compression_level);
 
 		compressed_mtd.height = rgb_mtd.height / (compression_level + 1);
 		compressed_mtd.width = rgb_mtd.width / (compression_level + 1);
@@ -142,7 +125,7 @@ int main(int argc, char **argv)
 				clamp(&compressed_matrix[j][k].b);
 			}
 		}
-
+		printf("\n");
 		if (rgb_mtd.image_format == P3) {
 			fprintf(outputs[i], "P3\n%d %d\n255\n", compressed_mtd.width, compressed_mtd.height);
 			for (int j = 0; j < compressed_mtd.height; j++) {
@@ -151,7 +134,6 @@ int main(int argc, char **argv)
 				}
 				fprintf(outputs[i], "\n");
 			}
-	
 		} else if (rgb_mtd.image_format == P6) {
 			fprintf(outputs[i], "P6\n%d %d\n255\n", compressed_mtd.width, compressed_mtd.height);
 			fclose(outputs[i]);
@@ -166,6 +148,40 @@ int main(int argc, char **argv)
 					fwrite(&g_bin, sizeof(unsigned char), 1, outputs[i]);
 					fwrite(&b_bin, sizeof(unsigned char), 1, outputs[i]);
 					fwrite(&r_bin, sizeof(unsigned char), 1, outputs[i]);
+				}
+			}
+		} else if (rgb_mtd.image_format == BMP) {
+			short int zero = 0;
+			int dim = compressed_mtd.height * compressed_mtd.width * 3 + bmp_header[10];
+			fclose(outputs[i]);
+			outputs[i] = fopen(filenames[i + 1], "wb");
+
+			for (int j = 0; j < 2; j++) {
+				fwrite(bmp_header + j, sizeof(unsigned char), 1, outputs[i]);
+			}
+			fwrite(&dim, sizeof(int), 1, outputs[i]);
+			for (int j = 6; j < 18; j++) {
+				fwrite(bmp_header + j, sizeof(unsigned char), 1, outputs[i]);
+			}
+			fwrite(&compressed_mtd.width, sizeof(short), 1, outputs[i]);
+			fwrite(&zero, sizeof(short int), 1, outputs[i]);
+			fwrite(&compressed_mtd.height, sizeof(short), 1, outputs[i]);
+			fwrite(&zero, sizeof(short int), 1, outputs[i]);
+			for (int j = 18; j < bmp_header[10] - 8; j++) {
+				fwrite(bmp_header + j, sizeof(unsigned char), 1, outputs[i]);
+			}
+			for (int j = 0; j < compressed_mtd.height; j++) {
+				for (int k = 0; k < compressed_mtd.width; k++) {
+					unsigned char r_bin = (unsigned char)compressed_matrix[j][k].r,
+					g_bin = (unsigned char)compressed_matrix[j][k].g,
+					b_bin = (unsigned char)compressed_matrix[j][k].b;
+
+					fwrite(&r_bin, sizeof(unsigned char), 1, outputs[i]);
+					fwrite(&g_bin, sizeof(unsigned char), 1, outputs[i]);
+					fwrite(&b_bin, sizeof(unsigned char), 1, outputs[i]);
+					if (rgb_mtd.top != 0) {
+						fwrite(&zero, sizeof(unsigned char), rgb_mtd.top, outputs[i]);
+					}
 				}
 			}
 		}

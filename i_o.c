@@ -18,7 +18,7 @@ void read_rgb_matrix(FILE *input, pixel_t **rgb_matrix, image_metadata_t *mtd, c
 					k++;
 				}
 				mtd->image_format = P3;
-			} else {
+			} else if (format == 'b'){
 				unsigned char r, g, b;
 				if (fread(&r, sizeof(unsigned char), 1, input) == 1 &&
 					fread(&g, sizeof(unsigned char), 1, input) == 1 &&
@@ -29,6 +29,21 @@ void read_rgb_matrix(FILE *input, pixel_t **rgb_matrix, image_metadata_t *mtd, c
 					k++;
 				}
 				mtd->image_format = P6;
+			} else if (format == 'm') {
+				mtd->image_format = BMP;
+				mtd->top = (4 - (mtd->width * 3) % 4) % 4;
+				unsigned char r, g, b;
+				if (fread(&r, sizeof(unsigned char), 1, input) == 1 &&
+					fread(&g, sizeof(unsigned char), 1, input) == 1 &&
+					fread(&b, sizeof(unsigned char), 1, input) == 1) {
+					rgb_matrix[i][j].r = (double)r;
+					rgb_matrix[i][j].g = (double)g;
+					rgb_matrix[i][j].b = (double)b;
+					k++;
+				}
+				if (mtd->top != 0) {
+					fseek(input, mtd->top, SEEK_CUR);
+				}
 			}
 		}
 	}
@@ -41,7 +56,7 @@ void read_rgb_matrix(FILE *input, pixel_t **rgb_matrix, image_metadata_t *mtd, c
 }
 
 image_metadata_t read_ppm_image(char *filename, FILE *input, pixel_t ***rgb_matrix,
-							char format)
+								char format)
 {
 	char buffer[LINE_LEN];
 	image_metadata_t mtd;
@@ -59,6 +74,32 @@ image_metadata_t read_ppm_image(char *filename, FILE *input, pixel_t ***rgb_matr
 		}
 		read_rgb_matrix(input, *rgb_matrix, &mtd, 'b');
 	}
+	return mtd;
+}
+
+image_metadata_t read_bmp_image(char *filename, FILE *input, pixel_t ***rgb_matrix,
+								unsigned char bmp_header[LINE_LEN])
+{
+	image_metadata_t mtd;
+	int height, width;
+
+	fclose(input);
+	input = fopen(filename, "rb");
+	for (int i = 0; i < 18; i++) {
+		fread(bmp_header + i, sizeof(unsigned char), 1, input);
+	}
+
+	fread(&width, sizeof(int), 1, input);
+	mtd.width = (short)width;
+	fread(&height, sizeof(int), 1, input);
+	mtd.height = (short)height;
+
+	for (int i = 18; i < bmp_header[10] - 8; i++) {
+		fread(bmp_header + i, sizeof(unsigned char), 1, input);
+	}
+	
+	*rgb_matrix = alloc_rgb_matrix(mtd.height, mtd.width);
+	read_rgb_matrix(input, *rgb_matrix, &mtd, 'm');
 	return mtd;
 }
 

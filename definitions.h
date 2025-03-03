@@ -18,7 +18,8 @@ typedef enum {
 
 typedef enum {
 	P3,
-	P6
+	P6,
+	BMP
 } image_format_t;
 
 typedef struct {

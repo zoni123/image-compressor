@@ -23,6 +23,7 @@ FILE **alloc_images(int argc, char **argv)
 			}
 		}
 	}
+	printf("\n");
 	return files;
 }
 
@@ -43,10 +44,11 @@ FILE **alloc_images_w(int argc, char **argv)
 				free(files);
 				exit(NO_FILE);
 			} else {
-				printf("Successfully opened %s.\n", argv[i + 1]);
+				printf("Successfully created %s.\n", argv[i + 1]);
 			}
 		}
 	}
+	printf("\n");
 	return files;
 }
 
