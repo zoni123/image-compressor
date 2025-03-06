@@ -1,7 +1,8 @@
 CC=gcc
 CFLAGS=-Wall -Wextra
 LDFLAGS=-lm -llapack -lblas -llapacke
-SRC=main.c memory_management.c i_o.c helper_functions.c
+SRC=src
+SRCS=$(wildcard $(SRC)/*.c)
 
 ifeq ($(OS),Windows_NT)
 	LDFLAGS+=-L/mingw64/lib
@@ -13,10 +14,10 @@ else
 	OUT=image_compressor
 endif
 
-build:
-	$(CC) $(CFLAGS) -o $(OUT) $(SRC) $(LDFLAGS)
+build: $(SRCS)
+	$(CC) $(CFLAGS) -o $(OUT) $(SRCS) $(LDFLAGS)
 
 clean:
-	$(RM) *.o $(OUT)
+	$(RM) $(OUT)
 
 .PHONY: clean
