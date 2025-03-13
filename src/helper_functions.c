@@ -8,7 +8,7 @@
 void svd(double *matrix, int height, int width, double *u, double *s, double *vt)
 {
 	int conv;
-	double *superb = (double *)malloc(min(height, width) * sizeof(double));
+	double *superb = (double *)malloc(MIN(height, width) * sizeof(double));
 	conv = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'A', 'A', height, width, matrix,
 						  width, s, u, height, vt, width, superb);
 	if (conv > 0) {

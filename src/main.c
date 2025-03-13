@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <math.h>
 #include <lapacke.h>
 #include <cblas.h>
@@ -16,38 +17,25 @@
 #include "definitions.h"
 #include "helper_functions.h"
 
-/* TODO: CLEAN UP THE CODE AND ADD COMMENTS */
+/* TODO: CLEAN UP CODE AND ADD COMMENTS */
 
 int main(int argc, char **argv)
 {
 	check_files(argc);
 
+	double *r_matrix = NULL, *g_matrix = NULL, *b_matrix = NULL, *u_r = NULL, *s_r = NULL,
+	*vt_r = NULL, *u_g = NULL, *s_g = NULL, *vt_g = NULL, *u_b = NULL, *s_b = NULL, *vt_b = NULL;
 	unsigned char compression_level, bmp_header[LINE_LEN];
-	char ppm_filetype[3], **filenames = (char **)malloc(sizeof(char *) * argc), extension[LINE_LEN];
+	char ppm_filetype[3], **filenames = (char **)malloc(sizeof(char *) * argc), extension[LINE_LEN], *p;
 	pixel_t **rgb_matrix = NULL, **compressed_matrix = NULL;
 	image_metadata_t rgb_mtd, compressed_mtd;
-	FILE **files = alloc_images(argc, argv), **outputs = NULL;
+	FILE **files = alloc_images(argc, argv, filenames), **outputs = NULL;
 
-	if (!filenames) {
-		exit(MEMORY_ALLOCATION_FAILED);
-	}
-
-	for (int i = 0; i < argc; i++) {
-		filenames[i] = (char *)malloc(LINE_LEN * sizeof(char));
-		if (!filenames[i]) {
-			for (int j = i - 1; j >= 0; j--) {
-				free(filenames[j]);
-			}
-			free(filenames);
-			exit(MEMORY_ALLOCATION_FAILED);
-		}
-	}
-
+	check_filenames(argc, &filenames);
 	create_output_files(argc, argv, filenames, extension);
 	outputs = alloc_images_w(argc, filenames);
 
 	for (int i = 0; i < argc - 1; i++) {
-		char *p;
 		p = strchr(filenames[i + 1], '.');
 		if (p) {
 			strcpy(extension, p + 1);
@@ -60,6 +48,9 @@ int main(int argc, char **argv)
 				rgb_mtd = read_ppm_image(argv[i + 1], &files[i], &rgb_matrix, 'b');
 			} else {
 				printf("File is not a valid ppm image.\n");
+				wipe(r_matrix, g_matrix, b_matrix, u_r, s_r, vt_r, u_g, s_g, vt_g, u_b,
+					 s_b, vt_b, rgb_matrix, compressed_matrix, rgb_mtd.height, compressed_mtd.height);
+				close_files(files, outputs, filenames, argc);
 				return INVALID_TYPE;
 			}
 			printf("How much compression for %s?\n1. A little\n2. A decent amount\n3. A lot\n4. Make it unintelligible\n (Choose a number between 1 and 4)\n", filenames[i + 1]);
@@ -70,23 +61,34 @@ int main(int argc, char **argv)
 			compression_level = 1;
 		} else {
 			printf("Invalid file type.\n");
+			wipe(r_matrix, g_matrix, b_matrix, u_r, s_r, vt_r, u_g, s_g, vt_g, u_b,
+				 s_b, vt_b, rgb_matrix, compressed_matrix, rgb_mtd.height, compressed_mtd.height);
+			close_files(files, outputs, filenames, argc);
 			return INVALID_TYPE;
 		}
+
 		if (compression_level < 1 || compression_level > 4) {
 			printf("Invalid compression level.\n");
+			wipe(r_matrix, g_matrix, b_matrix, u_r, s_r, vt_r, u_g, s_g, vt_g, u_b,
+				 s_b, vt_b, rgb_matrix, compressed_matrix, rgb_mtd.height, compressed_mtd.height);
+			close_files(files, outputs, filenames, argc);
 			return FAILED_SVD;
 		}
 
 		compressed_matrix = alloc_rgb_matrix(rgb_mtd.height / (compression_level + 1), rgb_mtd.width / (compression_level + 1));
+		if (!compressed_matrix) {
+			wipe(r_matrix, g_matrix, b_matrix, u_r, s_r, vt_r, u_g, s_g, vt_g, u_b,
+				 s_b, vt_b, rgb_matrix, compressed_matrix, rgb_mtd.height, compressed_mtd.height);
+			close_files(files, outputs, filenames, argc);
+			return MEMORY_ALLOCATION_FAILED;
+		}
 		downsample(&rgb_mtd, rgb_matrix, compressed_matrix, compression_level);
 
 		compressed_mtd.height = rgb_mtd.height / (compression_level + 1);
 		compressed_mtd.width = rgb_mtd.width / (compression_level + 1);
 		compressed_mtd.top = rgb_mtd.top;
 
-		double *r_matrix = (double *)malloc(compressed_mtd.height * compressed_mtd.width * sizeof(double));
-		double *g_matrix = (double *)malloc(compressed_mtd.height * compressed_mtd.width * sizeof(double));
-		double *b_matrix = (double *)malloc(compressed_mtd.height * compressed_mtd.width * sizeof(double));
+		alloc_compressed(compressed_mtd, &r_matrix, &g_matrix, &b_matrix, &u_r, &s_r, &vt_r, &u_g, &s_g, &vt_g, &u_b, &s_b, &vt_b);
 
 		for (int j = 0; j < compressed_mtd.height; j++) {
 			for (int k = 0; k < compressed_mtd.width; k++) {
@@ -96,23 +98,11 @@ int main(int argc, char **argv)
 			}
 		}
 
-		double *u_r = (double *)malloc(compressed_mtd.height * compressed_mtd.height * sizeof(double));
-		double *s_r = (double *)malloc(compressed_mtd.width * sizeof(double));
-		double *vt_r = (double *)malloc(compressed_mtd.width * compressed_mtd.width * sizeof(double));
-
-		double *u_g = (double *)malloc(compressed_mtd.height * compressed_mtd.height * sizeof(double));
-		double *s_g = (double *)malloc(compressed_mtd.width * sizeof(double));
-		double *vt_g = (double *)malloc(compressed_mtd.width * compressed_mtd.width * sizeof(double));
-
-		double *u_b = (double *)malloc(compressed_mtd.height * compressed_mtd.height * sizeof(double));
-		double *s_b = (double *)malloc(compressed_mtd.width * sizeof(double));
-		double *vt_b = (double *)malloc(compressed_mtd.width * compressed_mtd.width * sizeof(double));
-
 		svd(r_matrix, compressed_mtd.height, compressed_mtd.width, u_r, s_r, vt_r);
 		svd(g_matrix, compressed_mtd.height, compressed_mtd.width, u_g, s_g, vt_g);
 		svd(b_matrix, compressed_mtd.height, compressed_mtd.width, u_b, s_b, vt_b);
 
-		int selected_pixels = min(rgb_mtd.height, rgb_mtd.width) / (compression_level * compression_level * 5);
+		int selected_pixels = MIN(rgb_mtd.height, rgb_mtd.width) / (compression_level * compression_level * 5);
 
 		for (int j = 0; j < compressed_mtd.height; j++) {
 			for (int k = 0; k < compressed_mtd.width; k++) {
@@ -149,9 +139,16 @@ int main(int argc, char **argv)
 					g_bin = (unsigned char)compressed_matrix[j][k].g,
 					b_bin = (unsigned char)compressed_matrix[j][k].b;
 
-					fwrite(&g_bin, sizeof(unsigned char), 1, outputs[i]);
-					fwrite(&b_bin, sizeof(unsigned char), 1, outputs[i]);
-					fwrite(&r_bin, sizeof(unsigned char), 1, outputs[i]);
+					#if defined(__linux__) || defined(__APPLE__)
+						fwrite(&r_bin, sizeof(unsigned char), 1, outputs[i]);
+						fwrite(&g_bin, sizeof(unsigned char), 1, outputs[i]);
+						fwrite(&b_bin, sizeof(unsigned char), 1, outputs[i]);
+					#elif defined(_WIN32) || defined(_WIN64)
+						fwrite(&g_bin, sizeof(unsigned char), 1, outputs[i]);
+						fwrite(&b_bin, sizeof(unsigned char), 1, outputs[i]);
+						fwrite(&r_bin, sizeof(unsigned char), 1, outputs[i]);
+					#endif
+
 				}
 			}
 		} else if (rgb_mtd.image_format == BMP) {
@@ -189,8 +186,9 @@ int main(int argc, char **argv)
 				}
 			}
 		}
+		fseek(outputs[i], 0, SEEK_SET);
 		wipe(r_matrix, g_matrix, b_matrix, u_r, s_r, vt_r, u_g, s_g, vt_g, u_b,
-			s_b, vt_b, rgb_matrix, compressed_matrix, rgb_mtd.height, compressed_mtd.height);
+			 s_b, vt_b, rgb_matrix, compressed_matrix, rgb_mtd.height, compressed_mtd.height);
 	}
 	close_files(files, outputs, filenames, argc);
 	return 0;

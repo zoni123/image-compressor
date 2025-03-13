@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "memory_management.h"
 
-FILE **alloc_images(int argc, char **argv)
+FILE **alloc_images(int argc, char **argv, char **filenames)
 {
 	FILE **files = (FILE **)malloc(sizeof(FILE *) * (argc - 1));
 	if (files == NULL) {
@@ -17,6 +17,7 @@ FILE **alloc_images(int argc, char **argv)
 					fclose(files[i]);
 				}
 				free(files);
+				free(filenames);
 				exit(NO_FILE);
 			} else {
 				printf("Successfully opened %s.\n", argv[i + 1]);
@@ -87,24 +88,52 @@ void free_rgb_matrix(pixel_t ***rgb_matrix, short int height)
 }
 
 void wipe(double *r_matrix, double *g_matrix, double *b_matrix, double *u_r,
-	double *s_r, double *vt_r, double *u_g, double *s_g, double *vt_g,
-	double *u_b, double *s_b, double *vt_b, pixel_t **rgb_matrix,
-	pixel_t **compressed_matrix, short int rgb_height, short int compressed_height)
+		  double *s_r, double *vt_r, double *u_g, double *s_g, double *vt_g,
+		  double *u_b, double *s_b, double *vt_b, pixel_t **rgb_matrix,
+		  pixel_t **compressed_matrix, short int rgb_height, short int compressed_height)
 {
-	free(r_matrix);
-	free(g_matrix);
-	free(b_matrix);
-	free(u_r);
-	free(s_r);
-	free(vt_r);
-	free(u_g);
-	free(s_g);
-	free(vt_g);
-	free(u_b);
-	free(s_b);
-	free(vt_b);
-	free_rgb_matrix(&rgb_matrix, rgb_height);
-	free_rgb_matrix(&compressed_matrix, compressed_height);
+	if (r_matrix) {
+		free(r_matrix);
+	}
+	if (g_matrix) {
+		free(g_matrix);
+	}
+	if (b_matrix) {
+		free(b_matrix);
+	}
+	if (u_r) {
+		free(u_r);
+	}
+	if (s_r) {
+		free(s_r);
+	}
+	if (vt_r) {
+		free(vt_r);
+	}
+	if (u_g) {
+		free(u_g);
+	}
+	if (s_g) {
+		free(s_g);
+	}
+	if (vt_g) {
+		free(vt_g);
+	}
+	if (u_b) {
+		free(u_b);
+	}
+	if (s_b) {
+		free(s_b);
+	}
+	if (vt_b) {
+		free(vt_b);
+	}
+	if (rgb_matrix) {
+		free_rgb_matrix(&rgb_matrix, rgb_height);
+	}
+	if (compressed_matrix) {
+		free_rgb_matrix(&compressed_matrix, compressed_height);
+	}
 }
 
 void close_files(FILE **files, FILE **outputs, char **filenames, int argc)
@@ -125,4 +154,26 @@ void close_files(FILE **files, FILE **outputs, char **filenames, int argc)
 	free(filenames);
 	free(files);
 	free(outputs);
+}
+
+void alloc_compressed(image_metadata_t compressed_mtd, double **r_matrix,
+					  double **g_matrix, double **b_matrix, double **u_r,
+					  double **s_r, double **vt_r, double **u_g, double **s_g,
+					  double **vt_g, double **u_b, double **s_b, double **vt_b)
+{
+	*r_matrix = (double *)malloc(compressed_mtd.height * compressed_mtd.width * sizeof(double));
+	*g_matrix = (double *)malloc(compressed_mtd.height * compressed_mtd.width * sizeof(double));
+	*b_matrix = (double *)malloc(compressed_mtd.height * compressed_mtd.width * sizeof(double));
+
+	*u_r = (double *)malloc(compressed_mtd.height * compressed_mtd.height * sizeof(double));
+	*s_r = (double *)malloc(compressed_mtd.width * sizeof(double));
+	*vt_r = (double *)malloc(compressed_mtd.width * compressed_mtd.width * sizeof(double));
+
+	*u_g = (double *)malloc(compressed_mtd.height * compressed_mtd.height * sizeof(double));
+	*s_g = (double *)malloc(compressed_mtd.width * sizeof(double));
+	*vt_g = (double *)malloc(compressed_mtd.width * compressed_mtd.width * sizeof(double));
+
+	*u_b = (double *)malloc(compressed_mtd.height * compressed_mtd.height * sizeof(double));
+	*s_b = (double *)malloc(compressed_mtd.width * sizeof(double));
+	*vt_b = (double *)malloc(compressed_mtd.width * compressed_mtd.width * sizeof(double));
 }

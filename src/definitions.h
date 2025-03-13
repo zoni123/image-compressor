@@ -4,7 +4,7 @@
 
 #define NUM_FILES 32
 #define LINE_LEN 2048
-#define min(a, b) ((a) < (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 typedef enum {
 	OK,
@@ -13,7 +13,8 @@ typedef enum {
 	NO_FILE,
 	INVALID_TYPE,
 	INVALID_PIXELS,
-	FAILED_SVD
+	FAILED_SVD,
+	FAILED_WIPE
 } error_codes_t;
 
 typedef enum {

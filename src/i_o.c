@@ -85,6 +85,7 @@ image_metadata_t read_bmp_image(char *filename, FILE **input, pixel_t ***rgb_mat
 
 	fclose(*input);
 	*input = fopen(filename, "rb");
+
 	for (int i = 0; i < 18; i++) {
 		fread(bmp_header + i, sizeof(unsigned char), 1, *input);
 	}
@@ -128,5 +129,24 @@ void check_files(int argc)
 	} else if (argc > NUM_FILES + 1) {
 		printf("Too many files provided.\n");
 		exit(INVALID_FILE_NUMBER);
+	}
+}
+
+void check_filenames(int argc, char ***filenames)
+{
+	if (!(*filenames)) {
+		free(*filenames);
+		exit(MEMORY_ALLOCATION_FAILED);
+	}
+
+	for (int i = 0; i < argc; i++) {
+		(*filenames)[i] = (char *)malloc(LINE_LEN * sizeof(char));
+		if (!(*filenames)[i]) {
+			for (int j = i - 1; j >= 0; j--) {
+				free((*filenames)[j]);
+			}
+			free(*filenames);
+			exit(MEMORY_ALLOCATION_FAILED);
+		}
 	}
 }

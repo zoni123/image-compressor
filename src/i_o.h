@@ -14,4 +14,6 @@ void create_output_files(int argc, char **argv, char **filenames, char *extensio
 
 void check_files(int argc);
 
+void check_filenames(int argc, char ***filenames);
+
 #endif
