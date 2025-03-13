@@ -1,9 +1,9 @@
 /*
- * Copyright (c) 2025 Sebastian-Marian Badea
- *
- * This software is licensed under the MIT License.
- * See the LICENSE file for details.
- */
+* Copyright (c) 2025 Sebastian-Marian Badea
+*
+* This software is licensed under the MIT License.
+* See the LICENSE file for details.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +35,10 @@ int main(int argc, char **argv)
 	for (int i = 0; i < argc; i++) {
 		filenames[i] = (char *)malloc(LINE_LEN * sizeof(char));
 		if (!filenames[i]) {
+			for (int j = i - 1; j >= 0; j--) {
+				free(filenames[j]);
+			}
+			free(filenames);
 			exit(MEMORY_ALLOCATION_FAILED);
 		}
 	}
@@ -51,9 +55,9 @@ int main(int argc, char **argv)
 		if (strcmp(extension, "ppm") == OK) {
 			fgets(ppm_filetype, 3, files[i]);
 			if (strcmp(ppm_filetype, "P3") == 0) {
-				rgb_mtd = read_ppm_image(argv[i + 1], files[i], &rgb_matrix, 't');
+				rgb_mtd = read_ppm_image(argv[i + 1], &files[i], &rgb_matrix, 't');
 			} else if (strcmp(ppm_filetype, "P6") == 0) {
-				rgb_mtd = read_ppm_image(argv[i + 1], files[i], &rgb_matrix, 'b');
+				rgb_mtd = read_ppm_image(argv[i + 1], &files[i], &rgb_matrix, 'b');
 			} else {
 				printf("File is not a valid ppm image.\n");
 				return INVALID_TYPE;
@@ -61,7 +65,7 @@ int main(int argc, char **argv)
 			printf("How much compression for %s?\n1. A little\n2. A decent amount\n3. A lot\n4. Make it unintelligible\n (Choose a number between 1 and 4)\n", filenames[i + 1]);
 			scanf("%hhu", &compression_level);
 		} else if (strcmp(extension, "bmp") == OK) {
-			rgb_mtd = read_bmp_image(argv[i + 1], files[i], &rgb_matrix, bmp_header);
+			rgb_mtd = read_bmp_image(argv[i + 1], &files[i], &rgb_matrix, bmp_header);
 			printf("Compression for .bmp is broken in this version for compression levels {2, 3, 4}.\nWill automatically use compression level 1.\n");
 			compression_level = 1;
 		} else {
@@ -186,7 +190,7 @@ int main(int argc, char **argv)
 			}
 		}
 		wipe(r_matrix, g_matrix, b_matrix, u_r, s_r, vt_r, u_g, s_g, vt_g, u_b,
-			 s_b, vt_b, rgb_matrix, compressed_matrix, rgb_mtd.height, compressed_mtd.height);
+			s_b, vt_b, rgb_matrix, compressed_matrix, rgb_mtd.height, compressed_mtd.height);
 	}
 	close_files(files, outputs, filenames, argc);
 	return 0;

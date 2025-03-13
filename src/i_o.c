@@ -55,51 +55,51 @@ void read_rgb_matrix(FILE *input, pixel_t **rgb_matrix, image_metadata_t *mtd, c
 	}
 }
 
-image_metadata_t read_ppm_image(char *filename, FILE *input, pixel_t ***rgb_matrix,
+image_metadata_t read_ppm_image(char *filename, FILE **input, pixel_t ***rgb_matrix,
 								char format)
 {
 	char buffer[LINE_LEN];
 	image_metadata_t mtd;
 
-	fscanf(input, "%hd%hd%hd", &mtd.width, &mtd.height, &mtd.top);
+	fscanf(*input, "%hd%hd%hd", &mtd.width, &mtd.height, &mtd.top);
 	*rgb_matrix = alloc_rgb_matrix(mtd.height, mtd.width);
 
 	if (format == 't') {
-		read_rgb_matrix(input, *rgb_matrix, &mtd, 't');
+		read_rgb_matrix(*input, *rgb_matrix, &mtd, 't');
 	} else if (format == 'b') {
-		fclose(input);
-		input = fopen(filename, "rb");
+		fclose(*input);
+		*input = fopen(filename, "rb");
 		for (int i = 0; i < 3; i++) {
-			fgets(buffer, LINE_LEN, input);
+			fgets(buffer, LINE_LEN, *input);
 		}
-		read_rgb_matrix(input, *rgb_matrix, &mtd, 'b');
+		read_rgb_matrix(*input, *rgb_matrix, &mtd, 'b');
 	}
 	return mtd;
 }
 
-image_metadata_t read_bmp_image(char *filename, FILE *input, pixel_t ***rgb_matrix,
+image_metadata_t read_bmp_image(char *filename, FILE **input, pixel_t ***rgb_matrix,
 								unsigned char bmp_header[LINE_LEN])
 {
 	image_metadata_t mtd;
 	int height, width;
 
-	fclose(input);
-	input = fopen(filename, "rb");
+	fclose(*input);
+	*input = fopen(filename, "rb");
 	for (int i = 0; i < 18; i++) {
-		fread(bmp_header + i, sizeof(unsigned char), 1, input);
+		fread(bmp_header + i, sizeof(unsigned char), 1, *input);
 	}
 
-	fread(&width, sizeof(int), 1, input);
+	fread(&width, sizeof(int), 1, *input);
 	mtd.width = (short)width;
-	fread(&height, sizeof(int), 1, input);
+	fread(&height, sizeof(int), 1, *input);
 	mtd.height = (short)height;
 
 	for (int i = 18; i < bmp_header[10] - 8; i++) {
-		fread(bmp_header + i, sizeof(unsigned char), 1, input);
+		fread(bmp_header + i, sizeof(unsigned char), 1, *input);
 	}
 	
 	*rgb_matrix = alloc_rgb_matrix(mtd.height, mtd.width);
-	read_rgb_matrix(input, *rgb_matrix, &mtd, 'm');
+	read_rgb_matrix(*input, *rgb_matrix, &mtd, 'm');
 	return mtd;
 }
 

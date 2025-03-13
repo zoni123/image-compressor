@@ -110,11 +110,19 @@ void wipe(double *r_matrix, double *g_matrix, double *b_matrix, double *u_r,
 void close_files(FILE **files, FILE **outputs, char **filenames, int argc)
 {
 	for (int i = 0; i < argc - 1; i++) {
-		fclose(files[i]);
-		fclose(outputs[i]);
+		if (files[i]) {
+			fclose(files[i]);
+			files[i] = NULL;
+		}
+		if (outputs[i]) {
+			fclose(outputs[i]);
+			outputs[i] = NULL;
+		}
 	}
 	for (int i = 0; i < argc; i++) {
 		free(filenames[i]);
 	}
 	free(filenames);
+	free(files);
+	free(outputs);
 }
