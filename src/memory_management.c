@@ -1,10 +1,11 @@
 /* (c) 2025 Sebastian-Marian Badea - MIT License */
 #include <stdlib.h>
+#include <string.h>
 #include "memory_management.h"
 
-FILE **alloc_images(int argc, char **argv, char **filenames)
+FILE **alloc_images(int argc, char **argv)
 {
-	FILE **files = (FILE **)malloc(sizeof(FILE *) * (argc - 1));
+	FILE **files = malloc(sizeof(FILE *) * (argc - 1));
 	if (files == NULL) {
 		printf("Memory allocation failed.\n");
 		exit(MEMORY_ALLOCATION_FAILED);
@@ -14,10 +15,9 @@ FILE **alloc_images(int argc, char **argv, char **filenames)
 			if (!files[i]) {
 				printf("Cannot open file %s.\n", argv[i + 1]);
 				for (int j = i - 1; j >= 0; j--) {
-					fclose(files[i]);
+					fclose(files[j]);
 				}
 				free(files);
-				free(filenames);
 				exit(NO_FILE);
 			} else {
 				printf("Successfully opened %s.\n", argv[i + 1]);
@@ -30,7 +30,7 @@ FILE **alloc_images(int argc, char **argv, char **filenames)
 
 FILE **alloc_images_w(int argc, char **argv)
 {
-	FILE **files = (FILE **)malloc(sizeof(FILE *) * (argc - 1));
+	FILE **files = malloc(sizeof(FILE *) * (argc - 1));
 	if (files == NULL) {
 		printf("Memory allocation failed.\n");
 		exit(MEMORY_ALLOCATION_FAILED);
@@ -40,7 +40,7 @@ FILE **alloc_images_w(int argc, char **argv)
 			if (!files[i]) {
 				printf("Cannot open file %s.\n", argv[i + 1]);
 				for (int j = i - 1; j >= 0; j--) {
-					fclose(files[i]);
+					fclose(files[j]);
 				}
 				free(files);
 				exit(NO_FILE);
@@ -56,12 +56,12 @@ FILE **alloc_images_w(int argc, char **argv)
 pixel_t **alloc_rgb_matrix(short int height, short int width)
 {
 	pixel_t **rgb_matrix;
-	rgb_matrix = (pixel_t **)malloc(height * sizeof(pixel_t *));
+	rgb_matrix = malloc(height * sizeof(pixel_t *));
 	if (!rgb_matrix) {
 		exit(MEMORY_ALLOCATION_FAILED);
 	}
 	for (int i = 0; i < height; i++) {
-		rgb_matrix[i] = (pixel_t *)malloc(width * sizeof(pixel_t));
+		rgb_matrix[i] = malloc(width * sizeof(pixel_t));
 		if (!rgb_matrix[i]) {
 			for (int j = i - 1; j >= 0; j--) {
 				free(rgb_matrix[j]);
@@ -161,19 +161,70 @@ void alloc_compressed(image_metadata_t compressed_mtd, double **r_matrix,
 					  double **s_r, double **vt_r, double **u_g, double **s_g,
 					  double **vt_g, double **u_b, double **s_b, double **vt_b)
 {
-	*r_matrix = (double *)malloc(compressed_mtd.height * compressed_mtd.width * sizeof(double));
-	*g_matrix = (double *)malloc(compressed_mtd.height * compressed_mtd.width * sizeof(double));
-	*b_matrix = (double *)malloc(compressed_mtd.height * compressed_mtd.width * sizeof(double));
+	*r_matrix = malloc(compressed_mtd.height * compressed_mtd.width * sizeof(double));
+	*g_matrix = malloc(compressed_mtd.height * compressed_mtd.width * sizeof(double));
+	*b_matrix = malloc(compressed_mtd.height * compressed_mtd.width * sizeof(double));
 
-	*u_r = (double *)malloc(compressed_mtd.height * compressed_mtd.height * sizeof(double));
-	*s_r = (double *)malloc(compressed_mtd.width * sizeof(double));
-	*vt_r = (double *)malloc(compressed_mtd.width * compressed_mtd.width * sizeof(double));
+	*u_r = malloc(compressed_mtd.height * compressed_mtd.height * sizeof(double));
+	*s_r = malloc(compressed_mtd.width * sizeof(double));
+	*vt_r = malloc(compressed_mtd.width * compressed_mtd.width * sizeof(double));
 
-	*u_g = (double *)malloc(compressed_mtd.height * compressed_mtd.height * sizeof(double));
-	*s_g = (double *)malloc(compressed_mtd.width * sizeof(double));
-	*vt_g = (double *)malloc(compressed_mtd.width * compressed_mtd.width * sizeof(double));
+	*u_g = malloc(compressed_mtd.height * compressed_mtd.height * sizeof(double));
+	*s_g = malloc(compressed_mtd.width * sizeof(double));
+	*vt_g = malloc(compressed_mtd.width * compressed_mtd.width * sizeof(double));
 
-	*u_b = (double *)malloc(compressed_mtd.height * compressed_mtd.height * sizeof(double));
-	*s_b = (double *)malloc(compressed_mtd.width * sizeof(double));
-	*vt_b = (double *)malloc(compressed_mtd.width * compressed_mtd.width * sizeof(double));
+	*u_b = malloc(compressed_mtd.height * compressed_mtd.height * sizeof(double));
+	*s_b = malloc(compressed_mtd.width * sizeof(double));
+	*vt_b = malloc(compressed_mtd.width * compressed_mtd.width * sizeof(double));
+}
+
+void create_output_files(int argc, char **argv, char **filenames, char *extension)
+{
+	char *p;
+	for (int i = 0; i < argc - 1; i++) {
+		strcpy(filenames[i + 1], argv[i + 1]);
+		p = strchr(filenames[i + 1], '.');
+		if (p) {
+			strcpy(extension, p + 1);
+		} else {
+			for (int i = 0; i < argc; i++) {
+				free(filenames[i]);
+			}
+			free(filenames);
+			exit(INVALID_TYPE);
+		}
+		p[0] = '\0';
+		strcat(filenames[i + 1], "_compressed.");
+		strcat(filenames[i + 1], extension);
+	}
+}
+
+void check_files(int argc)
+{
+	if (argc < 2) {
+		printf("Provide at least one valid file.\n");
+		exit(INVALID_FILE_NUMBER);
+	} else if (argc > NUM_FILES + 1) {
+		printf("Too many files provided.\n");
+		exit(INVALID_FILE_NUMBER);
+	}
+}
+
+void check_filenames(int argc, char ***filenames)
+{
+	if (!(*filenames)) {
+		free(*filenames);
+		exit(MEMORY_ALLOCATION_FAILED);
+	}
+
+	for (int i = 0; i < argc; i++) {
+		(*filenames)[i] = malloc(LINE_LEN * sizeof(char));
+		if (!(*filenames)[i]) {
+			for (int j = i - 1; j >= 0; j--) {
+				free((*filenames)[j]);
+			}
+			free(*filenames);
+			exit(MEMORY_ALLOCATION_FAILED);
+		}
+	}
 }

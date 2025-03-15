@@ -4,7 +4,7 @@
 #include "definitions.h"
 #include <stdio.h>
 
-FILE **alloc_images(int argc, char **argv, char **filenames);
+FILE **alloc_images(int argc, char **argv);
 
 FILE **alloc_images_w(int argc, char **argv);
 
@@ -23,5 +23,11 @@ void alloc_compressed(image_metadata_t compressed_mtd, double **r_matrix,
 					  double **g_matrix, double **b_matrix, double **u_r,
 					  double **s_r, double **vt_r, double **u_g, double **s_g,
 					  double **vt_g, double **u_b, double **s_b, double **vt_b);
+
+void create_output_files(int argc, char **argv, char **filenames, char *extension);
+
+void check_files(int argc);
+
+void check_filenames(int argc, char ***filenames);
 
 #endif

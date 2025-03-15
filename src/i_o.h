@@ -10,10 +10,6 @@ image_metadata_t read_ppm_image(char *filename, FILE **input, pixel_t ***rgb_mat
 
 image_metadata_t read_bmp_image(char *filename, FILE **input, pixel_t ***rgb_matrix, unsigned char bmp_header[LINE_LEN]);
 
-void create_output_files(int argc, char **argv, char **filenames, char *extension);
-
-void check_files(int argc);
-
-void check_filenames(int argc, char ***filenames);
+void write_bmp_header(FILE *output, unsigned char bmp_header[LINE_LEN], image_metadata_t mtd);
 
 #endif

@@ -50,8 +50,9 @@ void read_rgb_matrix(FILE *input, pixel_t **rgb_matrix, image_metadata_t *mtd, c
 
 	printf("Read %d pixels.\n", k);
 	if (k != mtd->height * mtd->width) {
-		printf("Invalid number of pixels.\n");
-		exit(INVALID_PIXELS);
+		for (int i = k; i < mtd->height * mtd->width; i++) {
+			memset(&rgb_matrix[i / mtd->width][i % mtd->width], 0, sizeof(pixel_t));
+		}
 	}
 }
 
@@ -104,49 +105,23 @@ image_metadata_t read_bmp_image(char *filename, FILE **input, pixel_t ***rgb_mat
 	return mtd;
 }
 
-void create_output_files(int argc, char **argv, char **filenames, char *extension)
+void write_bmp_header(FILE *output, unsigned char bmp_header[LINE_LEN], image_metadata_t mtd)
 {
-	char *p;
-	for (int i = 0; i < argc - 1; i++) {
-		strcpy(filenames[i + 1], argv[i + 1]);
-		p = strchr(filenames[i + 1], '.');
-		if (p) {
-			strcpy(extension, p + 1);
-		} else {
-			exit(INVALID_TYPE);
-		}
-		p[0] = '\0';
-		strcat(filenames[i + 1], "_compressed.");
-		strcat(filenames[i + 1], extension);
-	}
-}
+	short int zero = 0;
+	int dim = mtd.height * mtd.width * 3 + bmp_header[10];
 
-void check_files(int argc)
-{
-	if (argc < 2) {
-		printf("Provide at least one valid file.\n");
-		exit(INVALID_FILE_NUMBER);
-	} else if (argc > NUM_FILES + 1) {
-		printf("Too many files provided.\n");
-		exit(INVALID_FILE_NUMBER);
+	for (int i = 0; i < 2; i++) {
+		fwrite(bmp_header + i, sizeof(unsigned char), 1, output);
 	}
-}
-
-void check_filenames(int argc, char ***filenames)
-{
-	if (!(*filenames)) {
-		free(*filenames);
-		exit(MEMORY_ALLOCATION_FAILED);
+	fwrite(&dim, sizeof(int), 1, output);
+	for (int i = 6; i < 18; i++) {
+		fwrite(bmp_header + i, sizeof(unsigned char), 1, output);
 	}
-
-	for (int i = 0; i < argc; i++) {
-		(*filenames)[i] = (char *)malloc(LINE_LEN * sizeof(char));
-		if (!(*filenames)[i]) {
-			for (int j = i - 1; j >= 0; j--) {
-				free((*filenames)[j]);
-			}
-			free(*filenames);
-			exit(MEMORY_ALLOCATION_FAILED);
-		}
+	fwrite(&mtd.width, sizeof(short), 1, output);
+	fwrite(&zero, sizeof(short int), 1, output);
+	fwrite(&mtd.height, sizeof(short), 1, output);
+	fwrite(&zero, sizeof(short int), 1, output);
+	for (int i = 18; i < bmp_header[10] - 8; i++) {
+		fwrite(bmp_header + i, sizeof(unsigned char), 1, output);
 	}
 }

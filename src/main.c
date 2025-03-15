@@ -26,11 +26,13 @@ int main(int argc, char **argv)
 	double *r_matrix = NULL, *g_matrix = NULL, *b_matrix = NULL, *u_r = NULL, *s_r = NULL,
 	*vt_r = NULL, *u_g = NULL, *s_g = NULL, *vt_g = NULL, *u_b = NULL, *s_b = NULL, *vt_b = NULL;
 	unsigned char compression_level, bmp_header[LINE_LEN];
-	char ppm_filetype[3], **filenames = (char **)malloc(sizeof(char *) * argc), extension[LINE_LEN], *p;
+	char ppm_filetype[3], **filenames = NULL, extension[LINE_LEN], *p;
 	pixel_t **rgb_matrix = NULL, **compressed_matrix = NULL;
 	image_metadata_t rgb_mtd, compressed_mtd;
-	FILE **files = alloc_images(argc, argv, filenames), **outputs = NULL;
-
+	FILE **files = NULL, **outputs = NULL;
+	
+	files = alloc_images(argc, argv);
+	filenames = malloc(argc * sizeof(char *));
 	check_filenames(argc, &filenames);
 	create_output_files(argc, argv, filenames, extension);
 	outputs = alloc_images_w(argc, filenames);
@@ -152,25 +154,11 @@ int main(int argc, char **argv)
 				}
 			}
 		} else if (rgb_mtd.image_format == BMP) {
-			short int zero = 0;
-			int dim = compressed_mtd.height * compressed_mtd.width * 3 + bmp_header[10];
 			fclose(outputs[i]);
 			outputs[i] = fopen(filenames[i + 1], "wb");
 
-			for (int j = 0; j < 2; j++) {
-				fwrite(bmp_header + j, sizeof(unsigned char), 1, outputs[i]);
-			}
-			fwrite(&dim, sizeof(int), 1, outputs[i]);
-			for (int j = 6; j < 18; j++) {
-				fwrite(bmp_header + j, sizeof(unsigned char), 1, outputs[i]);
-			}
-			fwrite(&compressed_mtd.width, sizeof(short), 1, outputs[i]);
-			fwrite(&zero, sizeof(short int), 1, outputs[i]);
-			fwrite(&compressed_mtd.height, sizeof(short), 1, outputs[i]);
-			fwrite(&zero, sizeof(short int), 1, outputs[i]);
-			for (int j = 18; j < bmp_header[10] - 8; j++) {
-				fwrite(bmp_header + j, sizeof(unsigned char), 1, outputs[i]);
-			}
+			write_bmp_header(outputs[i], bmp_header, compressed_mtd);
+			unsigned char zero = 0;
 			for (int j = 0; j < compressed_mtd.height; j++) {
 				for (int k = 0; k < compressed_mtd.width; k++) {
 					unsigned char r_bin = (unsigned char)compressed_matrix[j][k].r,
