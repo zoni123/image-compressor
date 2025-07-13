@@ -108,7 +108,7 @@ image_metadata_t read_bmp_image(char *filename, FILE **input, pixel_t ***rgb_mat
 void write_bmp_header(FILE *output, unsigned char bmp_header[LINE_LEN], image_metadata_t mtd)
 {
 	short int zero = 0;
-	int dim = mtd.height * mtd.width * 3 + bmp_header[10];
+	int dim = mtd.height * (mtd.width * 3 + mtd.top) + bmp_header[10];
 
 	for (int i = 0; i < 2; i++) {
 		fwrite(bmp_header + i, sizeof(unsigned char), 1, output);

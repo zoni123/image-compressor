@@ -12,7 +12,7 @@ void svd(double *matrix, int height, int width, double *u, double *s, double *vt
 	conv = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'A', 'A', height, width, matrix,
 						  width, s, u, height, vt, width, superb);
 	if (conv > 0) {
-		printf("Failed SVD.\n");
+		perror("Failed SVD");
 		exit(FAILED_SVD);
 	}
 	free(superb);

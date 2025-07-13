@@ -7,13 +7,13 @@ FILE **alloc_images(int argc, char **argv)
 {
 	FILE **files = malloc(sizeof(FILE *) * (argc - 1));
 	if (files == NULL) {
-		printf("Memory allocation failed.\n");
+		perror("Memory allocation failed");
 		exit(MEMORY_ALLOCATION_FAILED);
 	} else {
 		for (int i = 0; i < argc - 1; i++) {
 			files[i] = fopen(argv[i + 1], "rt");
 			if (!files[i]) {
-				printf("Cannot open file %s.\n", argv[i + 1]);
+				perror("Cannot open file");
 				for (int j = i - 1; j >= 0; j--) {
 					fclose(files[j]);
 				}
@@ -24,7 +24,6 @@ FILE **alloc_images(int argc, char **argv)
 			}
 		}
 	}
-	printf("\n");
 	return files;
 }
 
@@ -32,13 +31,13 @@ FILE **alloc_images_w(int argc, char **argv)
 {
 	FILE **files = malloc(sizeof(FILE *) * (argc - 1));
 	if (files == NULL) {
-		printf("Memory allocation failed.\n");
+		perror("Memory allocation failed");
 		exit(MEMORY_ALLOCATION_FAILED);
 	} else {
 		for (int i = 0; i < argc - 1; i++) {
 			files[i] = fopen(argv[i + 1], "wt");
 			if (!files[i]) {
-				printf("Cannot open file %s.\n", argv[i + 1]);
+				perror("Cannot open file");
 				for (int j = i - 1; j >= 0; j--) {
 					fclose(files[j]);
 				}
@@ -49,7 +48,6 @@ FILE **alloc_images_w(int argc, char **argv)
 			}
 		}
 	}
-	printf("\n");
 	return files;
 }
 
@@ -202,10 +200,10 @@ void create_output_files(int argc, char **argv, char **filenames, char *extensio
 void check_files(int argc)
 {
 	if (argc < 2) {
-		printf("Provide at least one valid file.\n");
+		perror("Provide at least one valid file");
 		exit(INVALID_FILE_NUMBER);
 	} else if (argc > NUM_FILES + 1) {
-		printf("Too many files provided.\n");
+		perror("Too many files provided");
 		exit(INVALID_FILE_NUMBER);
 	}
 }
