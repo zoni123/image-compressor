@@ -1,6 +1,6 @@
 # image-compressor
 
-# Disclaimer: wip - in active development
+# Disclaimer: wip - in development
 
 ## Overview
 
