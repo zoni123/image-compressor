@@ -181,12 +181,15 @@ void create_output_files(int argc, char **argv, char **filenames, char *extensio
 	char *p;
 	for (int i = 0; i < argc - 1; i++) {
 		strcpy(filenames[i + 1], argv[i + 1]);
+		if (filenames[i + 1][0] == '.' && filenames[i + 1][1] == '\\') {
+			memmove(filenames[i + 1], filenames[i + 1] + 2, strlen(filenames[i + 1]) + 1);
+		}
 		p = strchr(filenames[i + 1], '.');
 		if (p) {
 			strcpy(extension, p + 1);
 		} else {
-			for (int i = 0; i < argc; i++) {
-				free(filenames[i]);
+			for (int j = 0; j < argc; j++) {
+				free(filenames[j]);
 			}
 			free(filenames);
 			exit(INVALID_TYPE);

@@ -18,23 +18,17 @@ void svd(double *matrix, int height, int width, double *u, double *s, double *vt
 	free(superb);
 }
 
-void clamp(double *a)
-{
-	if (*a < 0.0) {
-		*a = 0.0;
-	} else if (*a > 255.0) {
-		*a = 255.0;
-	}
-}
-
 void downsample(image_metadata_t *rgb_mtd, pixel_t **rgb_matrix, pixel_t **compressed_matrix, int compression_level)
 {
-	for (int j = 0; j < rgb_mtd->height; j += compression_level + 1) {
-		for (int k = 0; k < rgb_mtd->width; k += compression_level + 1) {
+	int downsample_block = compression_level + 1;
+	double inv_downsample = 1.0 / (downsample_block * downsample_block);
+
+	for (int j = 0; j < rgb_mtd->height; j += downsample_block) {
+		for (int k = 0; k < rgb_mtd->width; k += downsample_block) {
 			pixel_t average = {0.0, 0.0, 0.0};
 			int valid_downsample = 1;
-			for (int l = 0; l < compression_level + 1; l++) {
-				for (int m = 0; m < compression_level + 1; m++) {
+			for (int l = 0; l < downsample_block; l++) {
+				for (int m = 0; m < downsample_block; m++) {
 					if (j + l >= rgb_mtd->height || k + m >= rgb_mtd->width) {
 						valid_downsample = 0;
 						break;
@@ -45,16 +39,16 @@ void downsample(image_metadata_t *rgb_mtd, pixel_t **rgb_matrix, pixel_t **compr
 				}
 			}
 
-			average.r /= ((compression_level + 1) * (compression_level + 1));
-			average.g /= ((compression_level + 1) * (compression_level + 1));
-			average.b /= ((compression_level + 1) * (compression_level + 1));
+			average.r *= inv_downsample;
+			average.g *= inv_downsample;
+			average.b *= inv_downsample;
 
-			clamp(&average.r);
-			clamp(&average.g);
-			clamp(&average.b);
+			average.r = (average.r < 0) ? 0 : (average.r > 255) ? 255 : average.r;
+			average.g = (average.g < 0) ? 0 : (average.g > 255) ? 255 : average.g;
+			average.b = (average.b < 0) ? 0 : (average.b > 255) ? 255 : average.b;
 
 			if (valid_downsample) {
-				compressed_matrix[j / (compression_level + 1)][k / (compression_level + 1)] = average;
+				compressed_matrix[j / downsample_block][k / downsample_block] = average;
 			}
 		}
 	}

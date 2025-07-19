@@ -114,9 +114,9 @@ int main(int argc, char **argv)
 					compressed_matrix[j][k].g += u_g[j * compressed_mtd.height + l] * s_g[l] * vt_g[l * compressed_mtd.width + k];
 					compressed_matrix[j][k].b += u_b[j * compressed_mtd.height + l] * s_b[l] * vt_b[l * compressed_mtd.width + k];
 				}
-				clamp(&compressed_matrix[j][k].r);
-				clamp(&compressed_matrix[j][k].g);
-				clamp(&compressed_matrix[j][k].b);
+				compressed_matrix[j][k].r = (compressed_matrix[j][k].r < 0) ? 0 : (compressed_matrix[j][k].r > 255) ? 255 : compressed_matrix[j][k].r;
+				compressed_matrix[j][k].g = (compressed_matrix[j][k].g < 0) ? 0 : (compressed_matrix[j][k].g > 255) ? 255 : compressed_matrix[j][k].g;
+				compressed_matrix[j][k].b = (compressed_matrix[j][k].b < 0) ? 0 : (compressed_matrix[j][k].b > 255) ? 255 : compressed_matrix[j][k].b;
 			}
 		}
 		if (rgb_mtd.image_format == P3) {
@@ -138,16 +138,9 @@ int main(int argc, char **argv)
 					g_bin = (unsigned char)compressed_matrix[j][k].g,
 					b_bin = (unsigned char)compressed_matrix[j][k].b;
 
-					#if defined(__linux__) || defined(__APPLE__)
-						fwrite(&r_bin, sizeof(unsigned char), 1, outputs[i]);
-						fwrite(&g_bin, sizeof(unsigned char), 1, outputs[i]);
-						fwrite(&b_bin, sizeof(unsigned char), 1, outputs[i]);
-					#elif defined(_WIN32) || defined(_WIN64)
-						fwrite(&g_bin, sizeof(unsigned char), 1, outputs[i]);
-						fwrite(&b_bin, sizeof(unsigned char), 1, outputs[i]);
-						fwrite(&r_bin, sizeof(unsigned char), 1, outputs[i]);
-					#endif
-
+					fwrite(&r_bin, sizeof(unsigned char), 1, outputs[i]);
+					fwrite(&g_bin, sizeof(unsigned char), 1, outputs[i]);
+					fwrite(&b_bin, sizeof(unsigned char), 1, outputs[i]);
 				}
 			}
 		} else if (rgb_mtd.image_format == BMP) {
