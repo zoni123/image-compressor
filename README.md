@@ -1,7 +1,5 @@
 # image-compressor
 
-# Disclaimer: wip - in development
-
 ## Overview
 
 An image compressor which works with P3 and P6 .ppm formats and with 24-bit .bmp format, with 4 levels of compression available. It uses the SVD provided by LAPACK to compress images.
